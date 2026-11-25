@@ -1,559 +1,159 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>O'Clock — a clock that only shows what you're doing now</title>
+<title>O'Clock</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,500..900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  @font-face { font-family: 'Gochi Hand'; src: url(fonts/gochi-hand.woff2) format('woff2'); font-display: swap; }
-  @font-face { font-family: 'Caveat'; src: url(fonts/caveat.woff2) format('woff2'); font-weight: 700; font-display: swap; }
-  @font-face { font-family: 'Nanum Pen'; src: url(fonts/nanum-pen.woff2) format('woff2'); font-display: swap; }
-  @font-face { font-family: 'Gaegu'; src: url(fonts/gaegu.woff2) format('woff2'); font-weight: 700; font-display: swap; }
-  @font-face { font-family: 'Permanent Marker'; src: url(fonts/permanent-marker.woff2) format('woff2'); font-display: swap; }
-  :root { --hand: 'Nanum Pen'; --hand-size: 1.4; }
-  @font-face { font-family: 'Caveat Brush'; src: url(fonts/caveat-brush.woff2) format('woff2'); font-display: swap; }
-  :root {
-    --bg: #F7F7F7;
-    --ink: #1F1F1F;
-    --ink-2: #707070;
-    --line: #E6E6E6;
-    --chip: #FFFFFF;
-  }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font-family: 'Nanum Pen', 'Gochi Hand', cursive; -webkit-font-smoothing: antialiased; }
-  body { display: flex; flex-direction: column; min-height: 100vh; }
-  header { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; padding: 24px clamp(16px, 4vw, 40px) 0; }
-  .title { display: flex; flex-direction: column; gap: 4px; }
-  .title h1 { margin: 0; display: flex; align-items: center; gap: 10px; font-size: 50px; font-weight: 400; line-height: 1; letter-spacing: 0.5px; }
-  .title p { margin: 0; font-size: 24px; line-height: 1.1; color: var(--ink-2); }
-  .toggles { display: flex; gap: 10px; flex-wrap: wrap; }
-  .seg { display: inline-flex; background: var(--line); border-radius: 999px; padding: 3px; }
-  .seg button { appearance: none; border: 0; background: transparent; color: var(--ink-2); font: 400 23px/1 'Nanum Pen', cursive; padding: 8px 14px; min-height: 36px; border-radius: 999px; cursor: pointer; }
-  .seg button[aria-pressed="true"] { background: var(--chip); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.10); }
-  .seg.icons button { width: 44px; padding: 0; display: grid; place-items: center; }
-  .seg.icons svg { width: 20px; height: 20px; }
-  .stage, .phone { transition: opacity .35s ease, transform .45s cubic-bezier(.2,.8,.2,1); }
-  main { position: relative; }
-  body:not(.view-phone) .phone, body.view-phone .stage { position: absolute; opacity: 0; transform: scale(.94) translateY(8px); pointer-events: none; }
-  @media (prefers-reduced-motion: reduce) { .stage, .phone { transition: none; } }
-  main { flex: 1; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: clamp(24px, 5vw, 72px); padding: 12px; min-height: 0; }
-  .stage { position: relative; width: min(62vh, 88vw, 560px); aspect-ratio: 1; }
-  @media (max-width: 760px) { .stage { width: min(86vw, 420px); } }
-  .stage svg { width: 100%; height: 100%; display: block; overflow: visible; }
-  .phone { display: block; position: relative; width: min(620px, 90vw, 90vh); aspect-ratio: 1125 / 800; -webkit-mask-image: linear-gradient(to bottom, #000 92%, transparent); mask-image: linear-gradient(to bottom, #000 92%, transparent); overflow: hidden; container-type: inline-size; }
-  .phone .shot { position: absolute; left: 0; top: 0; width: 100%; height: auto; }
-  /* official iOS 27 kit: small widget slot 164x164 at (211.33, 90) on the 402-wide screen; the render adds 24 (x) and 23.2 (y) of bezel on a 450-wide image */
-  .wslot { position: absolute; left: calc((24 + 211.33) / 450 * 100%); top: calc((23.2 + 90) / 450 * 100cqw); width: calc(164 / 450 * 100%); aspect-ratio: 1; border-radius: 22.5%; overflow: visible; background: #FFFFFF; box-shadow: 0 calc(4 / 450 * 100cqw) calc(14 / 450 * 100cqw) rgba(0,0,0,.06); transition: background-color .5s ease; }
-  .psb { position: absolute; left: calc(50 / 450 * 100%); right: calc(48 / 450 * 100%); top: calc(48 / 450 * 100cqw); display: flex; justify-content: space-between; align-items: center; font: 600 calc(17 / 450 * 100cqw) / 1 -apple-system, 'SF Pro Text', Inter, sans-serif; color: #1C1C1E; letter-spacing: -.02em; }
-  .psb svg { height: calc(13 / 450 * 100cqw); width: auto; }
-  .wslot svg { width: 100%; height: 100%; display: block; overflow: visible; }
-  .wname { color: #1C1C1E !important; text-shadow: none !important; } .wname { position: absolute; left: calc((24 + 211.33) / 450 * 100%); width: calc(164 / 450 * 100%); top: calc((23.2 + 90 + 170) / 450 * 100cqw); text-align: center; font: 500 calc(12 / 450 * 100cqw) / 1 -apple-system, 'SF Pro Text', Inter, sans-serif; text-shadow: 0 1px 3px rgba(0,0,0,.35); }
-  footer { padding: 0 clamp(16px, 4vw, 40px) 48px; }
-  .bar { display: flex; align-items: center; gap: 14px; }
-  .play { flex: none; width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--ink); color: #fff; display: grid; place-items: center; cursor: pointer; }
-  .play svg { width: 16px; height: 16px; }
-  .clock-read { flex: none; width: 92px; font-size: 28px; line-height: 1; }
-  .track { position: relative; flex: 1; height: 44px; cursor: pointer; touch-action: none; }
-  .rail { position: absolute; left: 0; right: 0; top: 19px; height: 6px; border-radius: 3px; background: var(--line); }
-  .segment { position: absolute; top: 9px; height: 26px; border-radius: 7px; border: 0; padding: 0 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; font: 400 23px/1 'Nanum Pen', cursive; letter-spacing: .2px; border-radius: 9px 6px 10px 5px / 6px 10px 5px 9px; white-space: nowrap; cursor: pointer; container-type: inline-size; }
-  .segment span { display: block; }
-  @container (max-width: 38px) { .segment span { display: none; } }
-  .playhead { position: absolute; top: 0; width: 12px; height: 8px; margin-left: -6px; pointer-events: none; }
-  .playhead::before { content: ''; position: absolute; inset: 0; background: #E8412C; clip-path: polygon(0 0, 100% 0, 50% 100%); }
-  .playhead::after { content: ''; position: absolute; left: 5px; top: 36px; width: 2px; height: 6px; border-radius: 1px; background: #E8412C; }
-  .ticks { position: absolute; left: 0; right: 0; top: 44px; height: 22px; font-size: 25px; line-height: 1; color: var(--ink-2); pointer-events: none; }
-  .ticks span { position: absolute; transform: translateX(-50%); }
-  @media (max-width: 560px) { .clock-read { display: none; } }
-  @media (max-width: 760px) { .phone { width: min(92vw, 480px); } }
-  .hand-num { font-family: var(--hand), 'Gochi Hand', cursive; font-weight: 700; }
-  .hand-tag { font-family: var(--hand), 'Gochi Hand', cursive; font-weight: 700; font-size: calc(22px * var(--hand-size)); }
+:root{--ink:#1A1A1A;--muted:#6B6B67}
+*{box-sizing:border-box}
+html{height:100%}
+body{min-height:100%;margin:0 auto;max-width:1040px;padding:0 28px 140px;background:#fff;font-family:Geist,system-ui,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased}
+.pg-top{display:flex;align-items:center;gap:8px;height:64px;font-size:13px;color:#8E8C87}
+.pg-top a{color:#1A1A1A;text-decoration:none}
+.pg-top b{font-weight:500}
+.pg-top i{font-style:normal;color:#C9C7C2}
+.demo{position:relative;height:min(860px,calc(100vh - 150px));min-height:620px;background:#F7F7F7;border-radius:22px;overflow:hidden;box-shadow:inset 0 0 0 .5px rgba(26,26,26,.06)}
+.demo iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
+.dctl{position:absolute;top:16px;z-index:20;display:flex;gap:2px;padding:3px;border-radius:999px;background:rgba(255,255,255,.8);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 1px 3px rgba(0,0,0,.05),inset 0 0 0 .5px rgba(26,26,26,.08)}
+.dctl.l{left:16px}.dctl.r{right:16px}
+.dctl button,.acts button,#close{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:999px;font:500 12.5px Geist,system-ui,sans-serif;color:#3A3936;transition:background .2s}
+.dctl.r button{padding:0 8px}
+.dctl button:hover,.acts button:hover{background:rgba(26,26,26,.06)}
+.dctl svg,.acts svg,#close svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+#close{position:fixed;top:16px;left:16px;z-index:60;display:none;width:36px;height:36px;justify-content:center;background:rgba(255,255,255,.85);backdrop-filter:blur(16px);box-shadow:0 1px 3px rgba(0,0,0,.05),inset 0 0 0 .5px rgba(26,26,26,.08);padding:0}
+.info{padding:22px 4px 0}
+.ttl{display:flex;align-items:center;justify-content:space-between}
+.ttl h1{font:500 19px Geist,system-ui,sans-serif;letter-spacing:-.01em;margin:0}
+.ttl h1 span{color:#8E8C87;font-weight:400;margin-left:6px}
+.acts{display:flex;gap:6px;align-items:center}
+.acts button{height:32px;padding:0 13px;box-shadow:inset 0 0 0 .5px rgba(26,26,26,.14)}
+.acts .gh{height:32px;display:inline-flex;align-items:center;padding:0 13px;border-radius:999px;font:500 12.5px Geist,system-ui,sans-serif;color:#3A3936;text-decoration:none;box-shadow:inset 0 0 0 .5px rgba(26,26,26,.14)}
+.acts .gh:hover{background:rgba(26,26,26,.05)}
+.acts .fr{height:32px;display:inline-flex;align-items:center;gap:8px;padding:0 14px 0 9px;border-radius:999px;font:500 12.5px Geist,system-ui,sans-serif;color:#3A3936;text-decoration:none;box-shadow:inset 0 0 0 .5px rgba(26,26,26,.14);transition:background .2s}
+.acts .fr:hover{background:rgba(26,26,26,.05)}
+.acts .fr i{width:20px;height:20px;border-radius:7px;background:#111;display:grid;place-items:center;transition:transform .3s,background .3s,box-shadow .3s}
+.acts .fr:hover i,.acts .fr:focus-visible i{animation:fr-icon 1.25s cubic-bezier(.3,0,.3,1) forwards}
+@keyframes fr-icon{0%{transform:none;background:#111}12%{transform:rotate(-10deg) scale(1.06)}68%{transform:rotate(-10deg) scale(1.06);background:#111;box-shadow:0 0 0 0 rgba(0,153,255,0)}80%{transform:rotate(6deg) scale(1.2);background:#0099FF;box-shadow:0 0 0 3px rgba(0,153,255,.2),0 0 14px rgba(0,153,255,.7)}90%{transform:rotate(-2deg) scale(.96)}100%{transform:none;background:#0099FF;box-shadow:0 0 0 0 rgba(0,153,255,0),0 0 8px rgba(0,153,255,.45)}}
+.acts .fr i svg{width:10px;height:10px;fill:#fff;stroke:none}
+.acts .fr .trace{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.acts .fr .trace rect{fill:none;vector-effect:non-scaling-stroke}
+.acts .fr .trace .ln{stroke:#2AA8FF;stroke-width:.6;stroke-dasharray:1 1;stroke-dashoffset:1;opacity:0;transition:opacity .25s;filter:drop-shadow(0 0 1.5px rgba(0,153,255,.75)) drop-shadow(0 0 6px rgba(0,153,255,.35))}
+.acts .fr .trace .hd{stroke:#F2FAFF;stroke-width:1;stroke-linecap:round;stroke-dasharray:.05 1;stroke-dashoffset:.05;opacity:0;filter:drop-shadow(0 0 1.5px #39AEFF) drop-shadow(0 0 4px rgba(0,153,255,.9)) drop-shadow(0 0 10px rgba(0,153,255,.5))}
+.acts .fr:hover .trace .ln,.acts .fr:focus-visible .trace .ln{opacity:1;transition:none;animation:fr-draw .9s cubic-bezier(.6,0,.25,1) forwards,fr-breathe 2.4s ease-in-out .9s infinite alternate}
+@keyframes fr-breathe{from{filter:drop-shadow(0 0 1.5px rgba(0,153,255,.75)) drop-shadow(0 0 6px rgba(0,153,255,.35))}to{filter:drop-shadow(0 0 2px rgba(0,153,255,.9)) drop-shadow(0 0 10px rgba(0,153,255,.55))}}
+.acts .fr:hover .trace .hd,.acts .fr:focus-visible .trace .hd{animation:fr-head .9s cubic-bezier(.6,0,.25,1) forwards}
+@keyframes fr-draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes fr-head{0%{stroke-dashoffset:.05;opacity:0}8%{opacity:1}82%{opacity:1}100%{stroke-dashoffset:-.95;opacity:0}}
+@media (prefers-reduced-motion:reduce){.acts .fr:hover .trace .ln{animation:none;stroke-dashoffset:0}.acts .fr:hover .trace .hd{animation:none}.acts .fr:hover i{animation:none;background:#0099FF}}
+
+.acts .fr{position:relative}
+
+
+.desc{max-width:600px;font-size:14px;line-height:1.6;color:#55534F;margin:12px 0 14px}
+.desc+.desc{margin-top:-6px}
+.desc a{color:#1A1A1A;text-decoration:underline;text-decoration-thickness:.5px;text-underline-offset:3px}
+.uses{display:flex;align-items:center;gap:6px;font-size:12px;color:#8E8C87;flex-wrap:wrap}
+.uses i{font-style:normal;padding:3px 9px;border-radius:999px;background:#F7F7F7;color:#55534F}
+.spec{margin-top:36px;padding-top:24px;border-top:.5px solid rgba(26,26,26,.1)}
+.tabs{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:#F7F7F7}
+.tabs button{all:unset;cursor:pointer;height:28px;padding:0 13px;border-radius:999px;font:500 12.5px Geist,system-ui,sans-serif;color:#8E8C87;transition:background .2s,color .2s}
+.tabs button.on{background:#fff;color:#1A1A1A;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.sp{display:grid;grid-template-columns:1fr 1fr;gap:48px;margin-top:20px;align-items:start}
+.sp p{font-size:15px;line-height:1.6;max-width:420px;padding-top:16px;color:#1A1A1A;margin:0}
+.sp .rows{display:grid;grid-template-columns:96px 1fr;gap:12px 16px;padding:20px 22px;border-radius:14px;background:#F7F7F7;font:400 12.5px/1.4 'Geist Mono',ui-monospace,monospace;color:#55534F;white-space:nowrap}
+.sp .rows b{font-weight:400;color:#1A1A1A}
+.sp .rows span{overflow:hidden;text-overflow:ellipsis}
+.sp .rows u{text-decoration:none;color:#E2723B}
+.toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,10px);opacity:0;padding:8px 14px;border-radius:999px;background:#1A1A1A;color:#fff;font:500 12.5px Geist,sans-serif;transition:all .3s;pointer-events:none}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+body.m-full{max-width:none;padding:0;overflow:hidden;height:100%}
+body.m-full .pg-top,body.m-full .info,body.m-full .dctl{display:none}
+body.m-full .demo{position:fixed;inset:0;height:auto;min-height:0;border-radius:0;box-shadow:none}
+body.m-full #close{display:inline-flex}
+@media (max-width:720px){
+  .ttl{flex-direction:column;align-items:flex-start;gap:12px}
+  .acts{flex-wrap:wrap}
+  .acts .fr{white-space:nowrap}
+  body{padding:0 16px 96px}
+  .pg-top{height:52px}
+  .demo{height:min(700px,calc(100svh - 120px));min-height:560px;border-radius:18px}
+  .dctl span{display:none}
+  .tabs{display:flex;overflow-x:auto;max-width:100%;scrollbar-width:none}
+  .tabs button{flex:none;padding:0 10px;font-size:12px}
+  .sp{grid-template-columns:1fr;gap:20px}
+  .sp p{padding-top:0;max-width:none}
+  .sp .rows{grid-template-columns:80px 1fr;white-space:normal;padding:16px 18px}
+}
 </style>
 </head>
 <body>
-<header>
-  <div class="title">
-    <h1><svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="14.5" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M17 17 L17 3.6 A13.4 13.4 0 0 1 28.6 10.3 Z" fill="#E8412C"/><circle cx="17" cy="17" r="2.2" fill="currentColor"/></svg>O'Clock</h1>
-    <p>Your day, one slice at a time.</p>
-  </div>
-  <div class="toggles">
-    <div class="seg" role="group" aria-label="Style">
-      <button type="button" data-style="sticker" aria-pressed="true">Sticker</button>
-      <button type="button" data-style="marker" aria-pressed="false">Hand-drawn</button>
-    </div>
-    <div class="seg icons" role="group" aria-label="View">
-      <button type="button" data-view="dial" aria-pressed="true" aria-label="On the web" title="On the web"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="3.5" width="15" height="13" rx="2.4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M2.5 7.5h15" stroke="currentColor" stroke-width="1.8"/><circle cx="5" cy="5.5" r=".8" fill="currentColor"/><circle cx="7.4" cy="5.5" r=".8" fill="currentColor"/></svg></button>
-      <button type="button" data-view="phone" aria-pressed="false" aria-label="On iPhone widget" title="On iPhone widget"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="5.5" y="2.5" width="9" height="15" rx="2.4" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="8.4" y="4.4" width="3.2" height="1.2" rx=".6" fill="currentColor"/></svg></button>
-    </div>
-  </div>
-</header>
+<header class="pg-top"><a class="crumb" href="https://yuanshuyi.com/craft" target="_blank"><b>Shuyi Yuan</b></a><i>/</i><span>O'Clock</span></header>
 
-<main>
-  <div class="stage"><svg id="dialBig" viewBox="0 0 400 400" role="img" aria-label="Schedule clock"></svg></div>
-  <div class="phone" aria-label="iPhone home screen with the Time To widget">
-    <img class="shot" src="assets/home-minimal.webp" alt="">
-    <div class="wslot" id="wBig"><svg id="dialSmall" viewBox="0 0 400 400" role="img" aria-label="Time To widget"></svg></div>
-    <div class="wname">Time To</div>
-    <div class="psb"><span>9:41</span><svg viewBox="0 0 72 14" aria-hidden="true"><rect x="0" y="9" width="3.4" height="5" rx="1" fill="#1C1C1E"/><rect x="5.4" y="6" width="3.4" height="8" rx="1" fill="#1C1C1E"/><rect x="10.8" y="3" width="3.4" height="11" rx="1" fill="#1C1C1E"/><rect x="16.2" y="0" width="3.4" height="14" rx="1" fill="#1C1C1E"/><path d="M33 13.5l2.4-2.8a3.6 3.6 0 0 0-4.8 0z M33 7.2a7 7 0 0 1 4.8 2l1.5-1.7a9.4 9.4 0 0 0-12.6 0l1.5 1.7A7 7 0 0 1 33 7.2z M33 1.6a12.6 12.6 0 0 0-8.5 3.4l1.5 1.7a10.2 10.2 0 0 1 14 0l1.5-1.7A12.6 12.6 0 0 0 33 1.6z" fill="#1C1C1E"/><rect x="45.5" y="1.5" width="23" height="11" rx="3.5" fill="none" stroke="#1C1C1E" stroke-opacity=".4"/><rect x="47.5" y="3.5" width="19" height="7" rx="2" fill="#1C1C1E"/><path d="M70 5.5v3a1.6 1.6 0 0 0 0-3z" fill="#1C1C1E" fill-opacity=".4"/></svg></div>
+<section class="demo" id="demo">
+  <div class="dctl l">
+    <button id="replay" title="Replay the day"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg><span>Replay</span></button>
+    <button id="expand" title="Full screen"><svg viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button>
   </div>
-</main>
+  <iframe id="clk" src="demo.html?embed=1" title="O'Clock"></iframe>
+</section>
+<button id="close" title="Exit full screen"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
 
-<footer>
-  <div class="bar">
-    <button class="play" id="play" type="button" aria-label="Pause"></button>
-    <div class="clock-read" id="readout"></div>
-    <div class="track" id="track" aria-label="Time of day" role="slider" aria-valuemin="7" aria-valuemax="22" tabindex="0">
-      <div class="rail"></div>
-      <div id="segments"></div>
-      <div class="playhead" id="playhead"></div>
-      <div class="ticks" id="ticks"></div>
+<section class="info">
+  <div class="ttl"><h1>O'Clock</h1>
+    <div class="acts">
+      <button id="share" title="Copy link"><svg viewBox="0 0 24 24"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><path d="M16 6l-4-4-4 4M12 2v13"/></svg><span>Share</span></button>
+      <a class="gh" href="https://github.com/shuyii0315-arch/oclock" target="_blank">GitHub</a>
     </div>
   </div>
-</footer>
+  <p class="desc">A clock that only shows what you're doing now. When a task's time comes, its slice of the dial opens and the things for it land inside: a bucket and brush for cleaning, a laptop and coffee for work. When nothing is planned, it's just a clock.</p>
+  <p class="desc">Two styles, sticker and hand-drawn, each on the web and as an iPhone home screen widget.</p>
+  <div class="uses"><span>Skills</span><i>SVG motion</i><i>Hand lettering</i><i>AI-generated assets</i><i>iOS widget layout</i></div>
+  <div class="spec">
+    <div class="tabs" id="tabs">
+      <button class="on" data-k="slice">Slice opens</button>
+      <button data-k="land">Things land</button>
+      <button data-k="write">Hand lettering</button>
+      <button data-k="phone">On iPhone</button>
+    </div>
+    <div class="sp"><p id="spT"></p><div class="rows" id="spC"></div></div>
+  </div>
+</section>
+<div class="toast" id="toast">Link copied</div>
 
 <script>
-(function () {
-  var NS = 'http://www.w3.org/2000/svg';
-  var ASSET = 'assets/';
-  var DAY_START = 7, DAY_END = 22, SPEED = 0.62; // hours per second
-
-  // aspect = height / width of each cut-out
-  var A = {"bucket":1.125,"brush":0.744,"sponge":1.338,"laptop":0.956,"mug":1.032,"notes":0.944,"pan":0.747,"tomato":1.014,"spoon":0.95,"dumbbell":0.675,"sneaker":0.581,"bottle":3.495,"cat":1.8,"shampoo":2.835,"m-laptop":0.906,"m-mug":1.268,"m-pan":0.9,"m-tomato":0.817,"m-bucket":1.436,"m-brush":1.304,"m-dumbbell":0.45,"m-sneaker":0.486,"m-cat":1.212,"bowl":0.881,"m-bowl":0.632,"m-shampoo":2.449};
-
-  // item: [image, angle offset from wedge middle, radius, width, rotation]
-  var THEMES = {
-    work:  { wedge: '#2340C9', bar: '#FFD23F', letter: '#E3A90A', soft: '#CADCF6',
-             items: [['laptop', 0, 114, 84, -8], ['notes', 14, 158, 60, -14], ['mug', -14, 160, 58, 10]],
-             marker: [['m-laptop', -6, 108, 84, 0], ['m-mug', 15, 152, 50, 4]] },
-    cook:  { wedge: '#1E5E45', bar: '#FF9A4D', letter: '#E66F18', soft: '#F8D9B0',
-             items: [['pan', 0, 112, 92, -10], ['tomato', 14, 156, 62, 8], ['spoon', -14, 160, 90, 30]],
-             marker: [['m-pan', -6, 108, 86, 0], ['m-tomato', 15, 152, 56, 4]] },
-    clean: { wedge: '#141414', bar: '#5DB6DE', letter: '#2592C8', soft: '#CFE9E3',
-             items: [['bucket', -1, 112, 76, -6], ['sponge', 14, 156, 58, 22], ['brush', -13, 160, 84, -28]],
-             marker: [['m-bucket', -6, 106, 62, 0], ['m-brush', 15, 150, 54, 6]] },
-    move:  { wedge: '#5B3FD1', bar: '#C8F04A', letter: '#8DB814', soft: '#E2F2A6',
-             items: [['dumbbell', 0, 114, 88, -12], ['bottle', 14, 156, 34, 14], ['sneaker', -14, 160, 80, -18]],
-             marker: [['m-dumbbell', -6, 106, 90, -10], ['m-sneaker', 15, 152, 66, 6]] },
-    bath:  { wedge: '#2E6F8E', bar: '#FFB8CB', letter: '#E77799', soft: '#F3E98A',
-             items: [['cat', 4, 120, 58, 0], ['bowl', -13, 146, 46, 0]],
-             marker: [['m-cat', 3, 112, 70, 0], ['m-bowl', -14, 140, 50, 0]] }
-  };
-
-  var TASKS = [
-    { theme: 'work',  start: 8.5, end: 11,  w1: 'WORK',    w2: "O'CLOCK" },
-    { theme: 'cook',  start: 11,  end: 13,  w1: 'COOK',    w2: "O'CLOCK" },
-    { theme: 'clean', start: 14,  end: 16,  w1: 'CLEAN',   w2: "O'CLOCK" },
-    { theme: 'move',  start: 17,  end: 19,  w1: 'GYM',     w2: "O'CLOCK" },
-    { theme: 'bath',  start: 19.5, end: 21.5, w1: 'CAT',   w2: "O'CLOCK" }
-  ];
-
-  function el(tag, attrs, parent) {
-    var n = document.createElementNS(NS, tag);
-    for (var k in attrs) n.setAttribute(k, attrs[k]);
-    if (parent) parent.appendChild(n);
-    return n;
-  }
-  function pt(a, r) { var t = a * Math.PI / 180; return [200 + r * Math.sin(t), 200 - r * Math.cos(t)]; }
-  function wob(a, base) { return base + 4 * Math.sin(a * 0.05 + 1.3) + 2.5 * Math.sin(a * 0.13 + 0.4) + 1.5 * Math.sin(a * 0.31); }
-  function ring(base, ph) {
-    var d = '';
-    for (var a = 0; a <= 360; a += 3) { var p = pt(a, wob(a + ph, base)); d += (a ? ' L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1); }
-    return d + ' Z';
-  }
-  function clamp(x) { return x < 0 ? 0 : x > 1 ? 1 : x; }
-  function easeOut(x) { return 1 - Math.pow(1 - x, 3); }
-  function easeBack(x) { var c = 1.6; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); }
-  function flip(a) { var n = ((a % 360) + 360) % 360; return n > 180 && n < 360; }
-
-  var uid = 0;
-  function Dial(svg, opts) {
-    opts = opts || {};
-    this.square = !!opts.square;
-    this.ios = !!opts.ios;
-    var id = 'd' + (uid++);
-    this.id = id;
-    var defs = el('defs', {}, svg);
-    defs.innerHTML =
-      '<filter id="' + id + 'drop" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">' +
-        '<feGaussianBlur in="SourceAlpha" stdDeviation="2.5"/><feOffset dx="1.5" dy="3" result="o"/>' +
-        '<feFlood flood-color="#000" flood-opacity="0.35"/><feComposite in2="o" operator="in" result="s"/>' +
-        '<feMerge><feMergeNode in="s"/><feMergeNode in="SourceGraphic"/></feMerge></filter>' +
-      '<filter id="' + id + 'obj" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">' +
-        '<feGaussianBlur in="SourceAlpha" stdDeviation="3"/><feOffset dx="0" dy="5" result="o"/>' +
-        '<feFlood flood-color="#000" flood-opacity="0.42"/><feComposite in2="o" operator="in" result="s"/>' +
-        '<feMerge><feMergeNode in="s"/><feMergeNode in="SourceGraphic"/></feMerge></filter>' +
-      '<filter id="' + id + 'engrave" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB">' +
-        '<feComponentTransfer in="SourceAlpha" result="inv"><feFuncA type="table" tableValues="1 0"/></feComponentTransfer>' +
-        '<feGaussianBlur in="inv" stdDeviation="0.7" result="ib"/>' +
-        '<feOffset in="ib" dx="1.4" dy="1.6" result="o1"/><feFlood flood-color="#00141F" flood-opacity="0.55"/>' +
-        '<feComposite in2="o1" operator="in"/><feComposite in2="SourceAlpha" operator="in" result="dark"/>' +
-        '<feOffset in="ib" dx="-0.8" dy="-0.9" result="o2"/><feFlood flood-color="#FFF" flood-opacity="0.22"/>' +
-        '<feComposite in2="o2" operator="in"/><feComposite in2="SourceAlpha" operator="in" result="light"/>' +
-        '<feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="dark"/><feMergeNode in="light"/></feMerge></filter>' +
-      '<filter id="' + id + 'sticker" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">' +
-        '<feMorphology in="SourceAlpha" operator="dilate" radius="5" result="d"/><feFlood flood-color="#fff"/><feComposite in2="d" operator="in" result="w"/>' +
-        '<feGaussianBlur in="d" stdDeviation="3"/><feOffset dy="3" result="sb"/><feFlood flood-color="#000" flood-opacity="0.18"/><feComposite in2="sb" operator="in" result="s"/>' +
-        '<feMerge><feMergeNode in="s"/><feMergeNode in="w"/><feMergeNode in="SourceGraphic"/></feMerge></filter>' +
-      '<filter id="' + id + 'grain" x="0" y="0" width="100%" height="100%">' +
-        '<feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/>' +
-        '<feColorMatrix type="saturate" values="0"/><feComposite in2="SourceAlpha" operator="in"/></filter>' +
-      '<radialGradient id="' + id + 'face" cx="0.42" cy="0.36" r="0.75"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#F1F0EC"/></radialGradient>' +
-      (opts.square ? '<clipPath id="' + id + 'clip"><rect x="-200" y="-200" width="800" height="800"/></clipPath><clipPath id="' + id + 'card"><rect x="0" y="0" width="400" height="400" rx="90"/></clipPath>' : '<clipPath id="' + id + 'clip"><circle cx="200" cy="200" r="181"/></clipPath>') +
-      '<clipPath id="' + id + 'mclip"><path d="' + ring(176, 0) + '"/></clipPath>';
-
-    // ---------- sticker ----------
-    var S = this.S = el('g', {}, svg);
-    this.sRim = el('circle', { cx: 200, cy: 200, r: 186, fill: 'url(#' + id + 'face)', stroke: '#111', 'stroke-width': 10 }, S);
-    for (var i = 0; i < 12; i++) { if (opts.square) el('rect', { x: 198, y: 18, width: 4, height: i % 3 ? 10 : 20, rx: 2, fill: i % 3 ? '#B9B2A6' : '#2A2520', transform: 'rotate(' + i * 30 + ' 200 200)' }, S); else el('rect', { x: 196.5, y: 30, width: 7, height: 24, rx: 1, fill: '#111', transform: 'rotate(' + i * 30 + ' 200 200)' }, S); }
-    this.sWedge = el('path', { d: '' }, opts.square ? el('g', { 'clip-path': 'url(#' + id + 'card)' }, S) : S);
-    this.sGrain = el('path', { d: '', fill: '#fff', opacity: 0.07, filter: 'url(#' + id + 'grain)' }, S);
-    this.sObjs = el('g', { 'clip-path': 'url(#' + id + 'clip)' }, S);
-    this.sBarA = el('rect', { x: 192, y: 183, width: 180, height: 34, rx: 1 }, el('g', {}, el('g', { filter: 'url(#' + id + 'drop)' }, S)));
-    this.sBarB = el('rect', { x: 192, y: 183, width: 180, height: 34, rx: 1 }, el('g', {}, el('g', { filter: 'url(#' + id + 'drop)' }, S)));
-    var lab = el('g', { filter: 'url(#' + id + 'engrave)' }, S);
-    this.sTxtA = this.makeLabel(lab);
-    this.sTxtB = this.makeLabel(lab);
-    if (this.ios) {
-      this.iHands = el('g', {}, S);
-      this.iA = el('rect', { x: 196, y: 30, width: 8, height: 174, rx: 4 }, this.iHands);
-      this.iB = el('rect', { x: 196, y: 30, width: 8, height: 174, rx: 4 }, this.iHands);
-      this.iLab = el('g', {}, S);
-      this.iT1 = el('text', { 'font-family': '-apple-system, SF Pro Rounded, SF Pro Display, Inter, sans-serif', 'font-weight': 700, 'font-size': 40, 'letter-spacing': -0.5 }, this.iLab);
-      this.iT2 = el('text', { 'font-family': '-apple-system, SF Pro Text, Inter, sans-serif', 'font-weight': 600, 'font-size': 26, fill: '#8E8E93' }, this.iLab);
-    }
-    this.sNow = el('rect', { x: 198.5, y: 56, width: 3, height: 146, rx: 1.5, fill: '#E8412C' }, el('g', { filter: 'url(#' + id + 'drop)' }, S));
-    this.sHour = el('rect', { x: 195, y: 98, width: 10, height: 107, rx: 5, fill: '#1A1A1A' }, el('g', { filter: 'url(#' + id + 'drop)' }, S));
-    this.sMin = el('rect', { x: 197, y: 56, width: 6, height: 149, rx: 3, fill: '#1A1A1A' }, el('g', { filter: 'url(#' + id + 'drop)' }, S));
-    var pin = el('g', { filter: 'url(#' + id + 'drop)' }, S);
-    this.pin = pin;
-    el('circle', { cx: 200, cy: 200, r: 17, fill: '#E8412C', stroke: '#C8321E', 'stroke-width': 1.5 }, pin);
-    el('circle', { cx: 200, cy: 200, r: 9, fill: '#EF4A32' }, pin);
-
-    // ---------- marker ----------
-    var M = this.M = el('g', {}, svg);
-    el('path', { d: ring(176, 0), fill: '#FBF7EC' }, M);
-    el('path', { d: ring(177, 40), fill: 'none', stroke: '#7A3B2E', 'stroke-width': 2.6, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, M);
-    el('path', { d: ring(171, 170), fill: 'none', stroke: '#7A3B2E', 'stroke-width': 1.6, 'stroke-linejoin': 'round', opacity: 0.8 }, M);
-    this.mWedge = el('path', { d: '', transform: 'translate(-3 2)' }, el('g', { 'clip-path': 'url(#' + id + 'mclip)' }, M));
-    this.mNums = [];
-    var self = this;
-    [[12, 0], [3, 90], [6, 180], [9, 270]].forEach(function (n) {
-      var p = pt(n[1], 140);
-      var t = el('text', { x: p[0].toFixed(1), y: (p[1] + 14).toFixed(1), 'text-anchor': 'middle', 'font-size': 44, fill: '#7A3B2E', class: 'hand-num' }, M);
-      t.textContent = n[0];
-      self.mNums.push({ el: t, a: n[1] });
-    });
-    this.mNow = el('path', { d: '', fill: 'none', stroke: '#E86A5A', 'stroke-width': 3, 'stroke-linecap': 'round' }, M);
-    this.mObjs = el('g', {}, M);
-    this.mHandA = el('path', { d: '', fill: 'none', stroke: '#7A3B2E', 'stroke-width': 4, 'stroke-linecap': 'round' }, M);
-    this.mHandB = el('path', { d: '', fill: 'none', stroke: '#7A3B2E', 'stroke-width': 4, 'stroke-linecap': 'round' }, M);
-    this.mHour = el('path', { d: '', fill: 'none', stroke: '#7A3B2E', 'stroke-width': 6, 'stroke-linecap': 'round' }, M);
-    this.mMin = el('path', { d: '', fill: 'none', stroke: '#7A3B2E', 'stroke-width': 4, 'stroke-linecap': 'round' }, M);
-    el('circle', { cx: 200, cy: 200, r: 7, fill: '#7A3B2E' }, M);
-    this.mTag = el('g', {}, M);
-    this.mTagBg = el('rect', { fill: '#FF86D9', rx: 1 }, this.mTag);
-    this.mClip = el('clipPath', { id: id + 'write' }, el('defs', {}, this.mTag));
-    this.mTagTx = el('text', { 'clip-path': 'url(#' + id + 'write)', class: 'hand-tag', fill: '#1A1A1A', 'text-anchor': 'middle', 'dominant-baseline': 'central', 'letter-spacing': 0.6 }, this.mTag);
-
-    if (opts.square) S.insertBefore(this.sObjs, this.sNow.parentNode);
-    this.objKey = null;
-    this.style = null;
-  }
-
-  // hand-lettering: reveal each glyph left to right on one clock, slow landing, faster middle, short pen lifts at spaces
-  Dial.prototype.layoutWrite = function (label) {
-    var tx = this.mTagTx;
-    tx.textContent = label;
-    var tw = tx.getComputedTextLength ? tx.getComputedTextLength() : label.length * 10;
-    this.mTw = tw;
-    this.mClip.innerHTML = '';
-    this.mW = [];
-    var t = 0;
-    for (var i = 0; i < label.length; i++) {
-      var x0 = -tw / 2 + (tx.getSubStringLength ? tx.getSubStringLength(0, i) : i * tw / label.length);
-      var w = tx.getSubStringLength ? tx.getSubStringLength(i, 1) : tw / label.length;
-      if (label[i] === ' ') { t += 110; continue; }
-      var d = 55 + w * 5;
-      var r = el('rect', { x: (x0 - 1.5).toFixed(2), y: -24, width: 0, height: 48 }, this.mClip);
-      this.mW.push({ r: r, w: w + 1.5, t0: t, d: d });
-      t += d * 0.82;
-    }
-  };
-
-  Dial.prototype.makeLabel = function (parent) {
-    var g = el('g', {}, parent);
-    var t = el('text', { x: 294, y: 200, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-family': 'Archivo, sans-serif', 'font-weight': 900, 'font-size': 23, 'letter-spacing': 0.3 }, g);
-    return { g: g, t: t };
-  };
-
-  Dial.prototype.buildObjects = function (task, style) {
-    var key = task ? task.theme + style + task.start : null;
-    if (key === this.objKey) return;
-    this.objKey = key;
-    var host = style === 'marker' ? this.mObjs : this.sObjs;
-    this.sObjs.innerHTML = ''; this.mObjs.innerHTML = '';
-    this.objs = [];
-    if (!task) return;
-    var th = THEMES[task.theme];
-    var list = style === 'marker' ? th.marker : th.items;
-    var a1 = (task.start % 12) * 30, a2 = a1 + (task.end - task.start) * 30, mid = (a1 + a2) / 2;
-    for (var i = 0; i < list.length; i++) {
-      var sq = this.square && style !== 'marker'; var k2 = sq ? 1.4 : 1, r2 = sq ? 1.34 : 1;
-      var it = list[i];
-      if (sq) { k2 = i === 0 ? 1.42 : 1.22; r2 = i === 0 ? 1.34 : 1.24; }
-      var w = it[3] * k2, h = w * A[it[0]], p = pt(mid + it[1] * (sq ? 1.15 : 1), it[2] * r2);
-      if (sq) {
-        var cx = Math.max(28, Math.min(372, p[0])), cy = Math.max(34, Math.min(340, p[1]));
-        var over = Math.abs(cx - p[0]) + Math.abs(cy - p[1]);
-        // near the card edge: shrink rather than slide inward over the pointers
-        if (over > 0) { var f = Math.max(0.72, 1 - over / 160); w *= f; h *= f; }
-        p[0] = (p[0] + cx) / 2; p[1] = (p[1] + cy) / 2;
-      }
-      var g = el('g', {}, host);
-      var inner = el('g', {}, g);
-      el('image', { href: ASSET + it[0] + '.webp', x: -w / 2, y: -h / 2, width: w, height: h, filter: style === 'marker' ? '' : 'url(#' + this.id + (this.ios ? 'sticker' : 'obj') + ')' }, inner);
-      this.objs.push({ g: g, inner: inner, x: p[0], y: p[1], rot: it[4] * (sq ? 1.3 : 1) + (sq ? (i % 2 ? 5 : -4) : 0) });
-    }
-  };
-
-  Dial.prototype.update = function (t, show, style) {
-    if (style !== this.style) {
-      this.style = style;
-      this.S.style.display = style === 'sticker' ? '' : 'none';
-      this.M.style.display = style === 'marker' ? '' : 'none';
-      this.objKey = null;
-    }
-    var task = show.task;
-    this.buildObjects(task, style);
-    var hasTask = !!task;
-    var a1 = 0, a2 = 0, A1 = 0, A2 = 0;
-    if (hasTask) {
-      a1 = (task.start % 12) * 30; a2 = a1 + (task.end - task.start) * 30;
-      var p = easeOut(clamp(show.p));
-      if (show.phase === 'out') { A1 = a2 - (a2 - a1) * p; A2 = a2; } else { A1 = a1; A2 = a1 + (a2 - a1) * p; }
-    }
-    var th = hasTask ? THEMES[task.theme] : null;
-    var hrA = ((t % 12) * 30), minA = (t % 1) * 360;
-
-    // object pop-in
-    if (this.objs) {
-      for (var i = 0; i < this.objs.length; i++) {
-        var o = this.objs[i], k, s, op;
-        if (show.phase === 'out') { op = clamp(show.p * 1.4); s = 0.9 + 0.1 * op; }
-        else { k = clamp((show.objT - i * 0.09) / 0.38); op = clamp(k * 2); s = 0.55 + 0.45 * easeBack(k); }
-        o.g.setAttribute('transform', 'translate(' + o.x.toFixed(1) + ' ' + o.y.toFixed(1) + ') rotate(' + o.rot + ') scale(' + s.toFixed(3) + ')');
-        o.g.setAttribute('opacity', op.toFixed(3));
-      }
-    }
-
-    if (style === 'sticker') {
-      var vis = hasTask && A2 - A1 > 0.3;
-      if (vis) {
-        var R = this.square ? 300 : 181, q1 = pt(A1, R), q2 = pt(A2, R), large = A2 - A1 > 180 ? 1 : 0;
-        var d = 'M200 200 L' + q1[0].toFixed(1) + ' ' + q1[1].toFixed(1) + ' A' + R + ' ' + R + ' 0 ' + large + ' 1 ' + q2[0].toFixed(1) + ' ' + q2[1].toFixed(1) + ' Z';
-        this.sWedge.setAttribute('d', d); this.sGrain.setAttribute('d', this.ios ? '' : d);
-        this.sWedge.setAttribute('fill', this.ios ? th.bar : th.wedge);
-      } else { this.sWedge.setAttribute('d', ''); this.sGrain.setAttribute('d', ''); }
-      var showBars = hasTask && !this.ios;
-      if (this.ios) {
-        this.iHands.style.display = this.iLab.style.display = hasTask ? '' : 'none';
-        if (hasTask) {
-          this.iA.setAttribute('fill', th.wedge); this.iB.setAttribute('fill', th.wedge);
-          this.iA.setAttribute('transform', 'rotate(' + A1.toFixed(2) + ' 200 200)');
-          this.iB.setAttribute('transform', 'rotate(' + A2.toFixed(2) + ' 200 200)');
-          var name = (task.w2.charAt(0) + task.w2.slice(1).toLowerCase());
-          if (this.iT1.textContent !== name) this.iT1.textContent = name;
-          var tr = fmtRange(task.start, task.end);
-          if (this.iT2.textContent !== tr) this.iT2.textContent = tr;
-          var m = ((a1 + a2) / 2) % 360, right = m < 180, top = m > 90 && m < 270;
-          var lx = right ? 34 : 366, ly = top ? 66 : 300;
-          this.iT1.setAttribute('x', lx); this.iT1.setAttribute('y', ly); this.iT1.setAttribute('text-anchor', right ? 'start' : 'end'); this.iT1.setAttribute('fill', '#1C1C1E');
-          this.iT2.setAttribute('x', lx); this.iT2.setAttribute('y', ly + 32); this.iT2.setAttribute('text-anchor', right ? 'start' : 'end');
-          this.iLab.setAttribute('opacity', show.phase === 'out' ? clamp(show.p).toFixed(2) : clamp(show.p * 1.5).toFixed(2));
-        }
-      }
-      // read left-to-right (or top-to-bottom when the two pointers are stacked), whichever pointer comes first gets the first word
-      var wA = task && task.w1, wB = task && task.w2;
-      if (hasTask) {
-        var tA = pt(a1, 170), tB = pt(a2, 170), dx = tB[0] - tA[0], dy = tB[1] - tA[1];
-        var bFirst = Math.abs(dx) > Math.abs(dy) ? dx < 0 : dy < 0;
-        if (bFirst) { wA = task.w2; wB = task.w1; }
-      }
-      [[this.sBarA, this.sTxtA, A1, wA], [this.sBarB, this.sTxtB, A2, wB]].forEach(function (b) {
-        b[0].parentNode.parentNode.style.display = showBars ? '' : 'none';
-        b[1].g.style.display = showBars ? '' : 'none';
-        if (!showBars) return;
-        b[0].setAttribute('fill', th.bar);
-        b[0].parentNode.setAttribute('transform', 'rotate(' + (b[2] - 90).toFixed(2) + ' 200 200)');
-        b[1].g.setAttribute('transform', 'rotate(' + (b[2] - 90).toFixed(2) + ' 200 200)');
-        b[1].t.setAttribute('transform', flip(b[2]) ? 'rotate(180 294 200)' : '');
-        b[1].t.setAttribute('fill', th.letter);
-        if (b[1].t.textContent !== b[3]) b[1].t.textContent = b[3];
-      });
-      this.sNow.parentNode.style.display = hasTask && show.phase !== 'out' && show.p >= 1 ? '' : 'none';
-      this.sNow.setAttribute('transform', 'rotate(' + hrA.toFixed(2) + ' 200 200)');
-      this.sHour.parentNode.style.display = this.sMin.parentNode.style.display = hasTask ? 'none' : '';
-      this.sHour.setAttribute('transform', 'rotate(' + hrA.toFixed(2) + ' 200 200)');
-      this.sMin.setAttribute('transform', 'rotate(' + minA.toFixed(2) + ' 200 200)');
-    } else {
-      if (hasTask && A2 - A1 > 0.3) {
-        var wd = 'M200 200';
-        for (var a = A1; a <= A2 + 0.01; a += 3) { var q = pt(a, wob(a, 168)); wd += ' L' + q[0].toFixed(1) + ' ' + q[1].toFixed(1); }
-        var qe = pt(A2, wob(A2, 168)); wd += ' L' + qe[0].toFixed(1) + ' ' + qe[1].toFixed(1) + ' Z';
-        this.mWedge.setAttribute('d', wd); this.mWedge.setAttribute('fill', th.soft);
-      } else this.mWedge.setAttribute('d', '');
-      function line(a, r, bend) { var p = pt(a, r), m = pt(a + bend, r * 0.5); return 'M200 200 Q' + m[0].toFixed(1) + ' ' + m[1].toFixed(1) + ' ' + p[0].toFixed(1) + ' ' + p[1].toFixed(1); }
-      this.mHandA.setAttribute('d', hasTask ? line(A1, 168, 3) : '');
-      this.mHandB.setAttribute('d', hasTask ? line(A2, 168, -3) : '');
-      this.mNow.setAttribute('d', hasTask && show.phase !== 'out' && show.p >= 1 ? line(hrA, 150, 2) : '');
-      this.mHour.setAttribute('d', hasTask ? '' : line(hrA, 95, 3));
-      this.mMin.setAttribute('d', hasTask ? '' : line(minA, 140, -3));
-      for (var j = 0; j < this.mNums.length; j++) {
-        var n = this.mNums[j], na = n.a < A1 - 5 ? n.a + 360 : n.a;
-        n.el.style.display = hasTask && na >= A1 - 6 && na <= A2 + 6 ? 'none' : '';
-      }
-      if (hasTask) {
-        var label = task.w1 + ' ' + task.w2;
-        var tw = this.mTagTx.getComputedTextLength ? this.mTagTx.getComputedTextLength() : label.length * 10;
-        if (this.mTagTx.textContent !== label || this.mTw !== tw) this.layoutWrite(label);
-        tw = this.mTw;
-        var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-        var wt = show.phase === 'out' || reduce ? 1e9 : (show.p >= 1 ? show.objT * 1000 - 60 : -1);
-        for (var c = 0; c < this.mW.length; c++) {
-          var q = this.mW[c], k = clamp((wt - q.t0) / q.d);
-          var e = k < 0.5 ? 2 * k * k : 1 - 2 * (1 - k) * (1 - k);
-          q.r.setAttribute('width', (q.w * e + (k >= 1 ? 3 : 0)).toFixed(2));
-        }
-        var tp = pt(a1 - 38, 86);
-        this.mTagBg.setAttribute('x', -tw / 2 - 11); this.mTagBg.setAttribute('y', -15);
-        this.mTagBg.setAttribute('width', tw + 22); this.mTagBg.setAttribute('height', 30);
-        this.mTag.setAttribute('transform', 'translate(' + tp[0].toFixed(1) + ' ' + tp[1].toFixed(1) + ') rotate(-4)');
-        var vis2 = show.phase === 'out' ? clamp(show.p) : clamp(show.p * 1.5);
-        this.mTag.setAttribute('opacity', vis2.toFixed(2));
-      } else this.mTag.setAttribute('opacity', 0);
-    }
-  };
-
-  // ---------- controller ----------
-  var big = new Dial(document.getElementById('dialBig'));
-  var small = new Dial(document.getElementById('dialSmall'), { square: true });
-  var wq = new URLSearchParams(location.search).get('w');
-  // inside a widget the card is the frame, so the dial drops its heavy black rim
-  small.sRim.setAttribute('stroke-width', 0);
-  small.sRim.setAttribute('fill', 'none');
-  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var state = { t: 8.2, playing: !reduce, style: 'sticker', view: 'dial' };
-  var show = { task: null, p: 0, phase: 'in', objT: 0 };
-
-  function taskAt(t) { for (var i = 0; i < TASKS.length; i++) if (t >= TASKS[i].start && t < TASKS[i].end) return TASKS[i]; return null; }
-  function fmt(t) { var h = Math.floor(t), m = Math.floor((t - h) * 60); var ap = h >= 12 ? 'PM' : 'AM'; var hh = h % 12 || 12; return hh + ':' + (m < 10 ? '0' : '') + m + ' ' + ap; }
-  function fmtRange(a, b) { function f(t) { var h = Math.floor(t), m = Math.round((t - h) * 60); return (h % 12 || 12) + (m ? ':' + (m < 10 ? '0' : '') + m : ''); } return f(a) + '–' + f(b) + (b >= 12 ? ' PM' : ' AM'); }
-  function fmtShort(t) { var h = Math.floor(t), m = Math.floor((t - h) * 60); return (h % 12 || 12) + ':' + (m < 10 ? '0' : '') + m; }
-
-  function step(dt) {
-    var want = taskAt(state.t);
-    if (show.task !== want) {
-      if (show.task && show.phase !== 'out') { show.phase = 'out'; }
-      if (!show.task) { show.task = want; show.phase = 'in'; show.p = 0; show.objT = 0; }
-    }
-    if (show.task) {
-      if (show.phase === 'out') {
-        show.p -= dt / 0.45;
-        if (show.p <= 0) { show.task = want; show.phase = 'in'; show.p = 0; show.objT = 0; }
-      } else {
-        if (show.p < 1) show.p = Math.min(1, show.p + dt / 0.7);
-        else show.objT += dt;
-      }
-    }
-  }
-
-  // timeline
-  var track = document.getElementById('track'), segs = document.getElementById('segments'), head = document.getElementById('playhead');
-  function pct(t) { return ((t - DAY_START) / (DAY_END - DAY_START) * 100); }
-  TASKS.forEach(function (tk) {
-    var b = document.createElement('button');
-    b.type = 'button'; b.className = 'segment';
-    b.style.left = pct(tk.start) + '%'; b.style.width = (pct(tk.end) - pct(tk.start)) + '%';
-    b.style.background = THEMES[tk.theme].bar; b.style.transform = 'rotate(' + ([-0.8, 0.6, -0.4, 0.9, -0.6][TASKS.indexOf(tk)]) + 'deg)'; b.style.color = '#2A1E16';
-    b.innerHTML = '<span>' + ({ work: 'Work', cook: 'Cook', clean: 'Clean', move: 'Gym', bath: 'Feed cat' })[tk.theme] + '</span>';
-    b.setAttribute('aria-label', 'Jump to ' + tk.w1 + ' ' + tk.w2 + ' at ' + fmt(tk.start));
-    b.addEventListener('click', function (e) { e.stopPropagation(); state.t = tk.start + 0.02; });
-    segs.appendChild(b);
-  });
-  var ticks = document.getElementById('ticks');
-  for (var h = DAY_START; h <= DAY_END; h += 3) { var s = document.createElement('span'); s.style.left = pct(h) + '%'; s.textContent = (h % 12 || 12) + (h >= 12 ? 'p' : 'a'); ticks.appendChild(s); }
-
-  var dragging = false;
-  function setFromX(x) { var r = track.getBoundingClientRect(); state.t = DAY_START + clamp((x - r.left) / r.width) * (DAY_END - DAY_START); }
-  track.addEventListener('pointerdown', function (e) { if (e.target.classList.contains('segment')) return; dragging = true; track.setPointerCapture(e.pointerId); setPlaying(false); setFromX(e.clientX); });
-  track.addEventListener('pointermove', function (e) { if (dragging) setFromX(e.clientX); });
-  track.addEventListener('pointerup', function () { dragging = false; });
-  track.addEventListener('keydown', function (e) {
-    if (e.key === 'ArrowRight') { state.t = Math.min(DAY_END, state.t + 0.25); setPlaying(false); }
-    if (e.key === 'ArrowLeft') { state.t = Math.max(DAY_START, state.t - 0.25); setPlaying(false); }
-  });
-
-  var playBtn = document.getElementById('play');
-  var ICON_PAUSE = '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="2" width="3.5" height="12" rx="1" fill="#fff"/><rect x="9.5" y="2" width="3.5" height="12" rx="1" fill="#fff"/></svg>';
-  var ICON_PLAY = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9.5-5.5z" fill="#fff"/></svg>';
-  function setPlaying(v) { state.playing = v; playBtn.innerHTML = v ? ICON_PAUSE : ICON_PLAY; playBtn.setAttribute('aria-label', v ? 'Pause' : 'Play'); }
-  playBtn.addEventListener('click', function () { setPlaying(!state.playing); });
-  setPlaying(state.playing);
-
-  document.querySelectorAll('[data-style]').forEach(function (b) {
-    b.addEventListener('click', function () {
-      state.style = b.dataset.style;
-      document.querySelectorAll('[data-style]').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
-    });
-  });
-  document.querySelectorAll('[data-view]').forEach(function (b) {
-    b.addEventListener('click', function () {
-      state.view = b.dataset.view;
-      document.body.classList.toggle('view-phone', state.view === 'phone');
-      document.querySelectorAll('[data-view]').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
-    });
-  });
-
-  // URL params let the case page deep-link a state: ?t=14.6&style=marker&view=phone&play=0
-  var q = new URLSearchParams(location.search);
-  if (q.get('t')) state.t = parseFloat(q.get('t'));
-  if (q.get('play') === '0') setPlaying(false);
-  if (q.get('style')) { var sb = document.querySelector('[data-style="' + q.get('style') + '"]'); if (sb) sb.click(); }
-  if (q.get('view')) { var vb = document.querySelector('[data-view="' + q.get('view') + '"]'); if (vb) vb.click(); }
-
-  var readout = document.getElementById('readout'), lockTime = { textContent: '' }, nextCard = null;
-
-  window.__timeto = { state: state, play: setPlaying };
-  var wBig = document.getElementById('wBig'), lastBg = '';
-  function phoneUpdate() {
-    var bg = '#FFFFFF';
-    if (bg !== lastBg) { wBig.style.backgroundColor = bg; lastBg = bg; }
-  }
-  var HF = { brush: ["'Caveat Brush'", 1], caveat: ["'Caveat'", 1.25], nanum: ["'Nanum Pen'", 1.4], gaegu: ["'Gaegu'", 1.15], marker: ["'Permanent Marker'", 0.95] };
-  var hf = HF[new URLSearchParams(location.search).get('hf')];
-  if (hf) { document.documentElement.style.setProperty('--hand', hf[0]); document.documentElement.style.setProperty('--hand-size', hf[1]); }
-  if (document.fonts) document.fonts.ready.then(function () { big.objKey = small.objKey = null; big.mTagTx.textContent = small.mTagTx.textContent = ''; });
-  var last = performance.now();
-  function frame(now) {
-    var dt = Math.min(0.05, (now - last) / 1000); last = now;
-    if (state.playing && !dragging) { state.t += dt * SPEED; if (state.t >= DAY_END) state.t = DAY_START + 1; }
-    step(dt);
-    big.update(state.t, show, state.style);
-    if (state.view === 'phone') { small.update(state.t, show, state.style); phoneUpdate(); }
-    head.style.left = pct(state.t) + '%';
-    track.setAttribute('aria-valuenow', state.t.toFixed(2));
-    track.setAttribute('aria-valuetext', fmt(state.t));
-    readout.textContent = fmt(state.t);
-    lockTime.textContent = fmtShort(state.t);
-    var cur = taskAt(state.t), nxt = null;
-    for (var i = 0; i < TASKS.length; i++) if (TASKS[i].start > state.t) { nxt = TASKS[i]; break; }
-    var html = cur ? '<b>' + cur.w1 + ' ' + cur.w2 + '</b>until ' + fmt(cur.end) : '<b>Free time</b>' + (nxt ? 'next: ' + nxt.w1 + ' ' + nxt.w2 + ' at ' + fmt(nxt.start) : 'nothing else today');
-    requestAnimationFrame(frame);
-  }
-  requestAnimationFrame(frame);
-})();
+const $=s=>document.querySelector(s);
+const clk=$('#clk');
+const send=m=>{try{clk.contentWindow.postMessage(Object.assign({oc:'go'},m),'*')}catch(e){}};
+const SPEC={
+  slice:["Only one slice is ever on the dial. When a task starts, the far pointer sweeps open from the start time to the end time; when it ends, the near pointer sweeps closed. The two pointers carry the task's name.",
+    [["Open","<u>0.7s</u>, ease-out cubic"],["Close","0.45s, from the start side"],["Pointers","two words, pressed into the plastic"],["Between tasks","a plain clock, hour and minute"],["Demo day","7a to 10p in about 24s"]]],
+  land:["The things arrive only after the slice is fully open, one after another, each overshooting a little before it settles. Every task gets objects of its own, cut out from generated product photos.",
+    [["Wait","until the slice is open"],["Each","0.38s, starts at 55% size"],["Stagger","<u>0.09s</u> apart"],["Settle","back-ease, slight overshoot"],["Per task","2 to 3 objects, real cut-outs"]]],
+  write:["In the hand-drawn style the label is written, not shown. The letters come in one by one on a single clock, slow at the start of each letter and quicker through it, with a short lift of the pen at each space.",
+    [["Letter","<u>55ms</u> + 5ms per px of width"],["Overlap","next letter starts at 82%"],["Pen lift","0.11s at each space"],["Whole label","about 1.2s"],["No motion","shown at once if motion is off"]]],
+  phone:["On the home screen the dial sits in a small widget. The slice runs to the edge of the card, and the sticker objects may lean over the pointers and step just past the frame, never onto the label below.",
+    [["Slot","164 × 164 pt, iOS 27 grid"],["Card","plain white, no border"],["Break-out","up to the card edge, then shrink"],["Shrink","down to <u>72%</u> near the edge"],["Label","kept clear"]]]
+};
+const RUN={slice:{style:'sticker',view:'dial',t:13.97,play:true},land:{style:'sticker',view:'dial',t:8.47,play:true},write:{style:'marker',view:'dial',t:13.97,play:true},phone:{style:'sticker',view:'phone',t:19.47,play:true}};
+function spec(k,run){
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.k===k));
+  $('#spT').textContent=SPEC[k][0];
+  $('#spC').innerHTML=SPEC[k][1].map(([l,v])=>'<b>'+l+'</b><span>'+v+'</span>').join('');
+  if(run&&RUN[k]) send(RUN[k]);
+}
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>spec(b.dataset.k,1));
+spec('slice');
+$('#replay').onclick=()=>send({t:7.2,play:true});
+$('#expand').onclick=()=>document.body.classList.add('m-full');
+$('#close').onclick=()=>document.body.classList.remove('m-full');
+addEventListener('keydown',e=>{if(e.key==='Escape')document.body.classList.remove('m-full')});
+$('#share').onclick=async()=>{
+  try{await navigator.clipboard.writeText(location.href)}catch(e){}
+  const t=$('#toast');t.classList.add('on');setTimeout(()=>t.classList.remove('on'),1400);
+};
 </script>
 </body>
 </html>
