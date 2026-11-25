@@ -303,11 +303,11 @@
     var ghost = src.cloneNode(true); ghost.style.display = ''; ghost.removeAttribute('id');
     svg.appendChild(ghost); center(ghost); this.ghost = ghost;
     var self = this;
-    ghost.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'scale(.9) rotate(' + (to === 'marker' ? -8 : 8) + 'deg)' }],
-      { duration: 340, easing: 'cubic-bezier(.4,0,.9,.5)', fill: 'forwards' }).onfinish = function () { ghost.remove(); if (self.ghost === ghost) self.ghost = null; };
-    var layer = to === 'sticker' ? this.S : this.M; center(layer);
-    layer.animate([{ opacity: 0, transform: 'scale(1.08) rotate(' + (to === 'marker' ? 6 : -6) + 'deg)' }, { opacity: 1, transform: 'none' }],
-      { duration: 620, delay: 90, easing: 'cubic-bezier(.2,1.25,.3,1)', fill: 'backwards' });
+    ghost.animate([{ opacity: 1 }, { opacity: 0 }],
+      { duration: 220, easing: 'cubic-bezier(.4,0,1,1)', fill: 'forwards' }).onfinish = function () { ghost.remove(); if (self.ghost === ghost) self.ghost = null; };
+    // the face only cross-fades (scaling a layer full of filters stutters); the motion comes from the pointers swinging open again
+    var layer = to === 'sticker' ? this.S : this.M;
+    layer.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 260, delay: 60, easing: 'cubic-bezier(0,0,.2,1)', fill: 'backwards' });
     if (to === 'marker') {
       this.mRims.forEach(function (r, i) {
         var L = r.getTotalLength();
@@ -369,7 +369,7 @@
       this.S.style.display = style === 'sticker' ? '' : 'none';
       this.M.style.display = style === 'marker' ? '' : 'none';
       this.objKey = null;
-      if (prev) { this.morph(prev, style); if (show.p >= 1) show.objT = 0; }
+      if (prev) { this.morph(prev, style); if (show.task && show.phase === 'in' && !REDUCE) { show.p = 0; show.objT = 0; } }
     }
     var task = show.task;
     this.buildObjects(task, style);
