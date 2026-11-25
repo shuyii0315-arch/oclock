@@ -30,9 +30,12 @@
   .title h1 { margin: 0; display: flex; align-items: center; gap: 10px; font-size: 50px; font-weight: 400; line-height: 1; letter-spacing: 0.5px; }
   .title p { margin: 0; font-size: 24px; line-height: 1.1; color: var(--ink-2); }
   .toggles { display: flex; gap: 10px; flex-wrap: wrap; }
-  .seg { display: inline-flex; background: var(--line); border-radius: 999px; padding: 3px; }
+  .seg { position: relative; display: inline-flex; background: var(--line); border-radius: 999px; padding: 3px; }
+  .seg .thumb { position: absolute; top: 3px; bottom: 3px; left: 0; width: 0; border-radius: 999px; background: var(--chip); box-shadow: 0 1px 2px rgba(0,0,0,.10); transition: transform .42s cubic-bezier(.2,1.25,.3,1), width .42s cubic-bezier(.2,1.25,.3,1); pointer-events: none; }
+  .seg button { position: relative; z-index: 1; transition: color .25s ease; }
+  @media (prefers-reduced-motion: reduce) { .seg .thumb { transition: none; } }
   .seg button { appearance: none; border: 0; background: transparent; color: var(--ink-2); font: 400 23px/1 'Nanum Pen', cursive; padding: 8px 14px; min-height: 36px; border-radius: 999px; cursor: pointer; }
-  .seg button[aria-pressed="true"] { background: var(--chip); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.10); }
+  .seg button[aria-pressed="true"] { color: var(--ink); }
   .seg.icons button { width: 44px; padding: 0; display: grid; place-items: center; }
   .seg.icons svg { width: 20px; height: 20px; }
   .stage, .phone { transition: opacity .35s ease, transform .45s cubic-bezier(.2,.8,.2,1); }
@@ -211,7 +214,8 @@
     // ---------- sticker ----------
     var S = this.S = el('g', {}, svg);
     this.sRim = el('circle', { cx: 200, cy: 200, r: 186, fill: 'url(#' + id + 'face)', stroke: '#111', 'stroke-width': 10 }, S);
-    for (var i = 0; i < 12; i++) { if (opts.square) el('rect', { x: 198, y: 18, width: 4, height: i % 3 ? 10 : 20, rx: 2, fill: i % 3 ? '#B9B2A6' : '#2A2520', transform: 'rotate(' + i * 30 + ' 200 200)' }, S); else el('rect', { x: 196.5, y: 30, width: 7, height: 24, rx: 1, fill: '#111', transform: 'rotate(' + i * 30 + ' 200 200)' }, S); }
+    this.sTicks = [];
+    for (var i = 0; i < 12; i++) { if (opts.square) this.sTicks.push(el('rect', { x: 198, y: 18, width: 4, height: i % 3 ? 10 : 20, rx: 2, fill: i % 3 ? '#B9B2A6' : '#2A2520', transform: 'rotate(' + i * 30 + ' 200 200)' }, S)); else this.sTicks.push(el('rect', { x: 196.5, y: 30, width: 7, height: 24, rx: 1, fill: '#111', transform: 'rotate(' + i * 30 + ' 200 200)' }, S)); }
     this.sWedge = el('path', { d: '' }, opts.square ? el('g', { 'clip-path': 'url(#' + id + 'card)' }, S) : S);
     this.sGrain = el('path', { d: '', fill: '#fff', opacity: 0.07, filter: 'url(#' + id + 'grain)' }, S);
     this.sObjs = el('g', { 'clip-path': 'url(#' + id + 'clip)' }, S);
@@ -239,8 +243,9 @@
     // ---------- marker ----------
     var M = this.M = el('g', {}, svg);
     el('path', { d: ring(176, 0), fill: '#FBF7EC' }, M);
-    el('path', { d: ring(177, 40), fill: 'none', stroke: '#7A3B2E', 'stroke-width': 2.6, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, M);
-    el('path', { d: ring(171, 170), fill: 'none', stroke: '#7A3B2E', 'stroke-width': 1.6, 'stroke-linejoin': 'round', opacity: 0.8 }, M);
+    this.mRims = [];
+    this.mRims.push(el('path', { d: ring(177, 40), fill: 'none', stroke: '#7A3B2E', 'stroke-width': 2.6, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, M));
+    this.mRims.push(el('path', { d: ring(171, 170), fill: 'none', stroke: '#7A3B2E', 'stroke-width': 1.6, 'stroke-linejoin': 'round', opacity: 0.8 }, M));
     this.mWedge = el('path', { d: '', transform: 'translate(-3 2)' }, el('g', { 'clip-path': 'url(#' + id + 'mclip)' }, M));
     this.mNums = [];
     var self = this;
@@ -287,6 +292,40 @@
     }
   };
 
+  // style switch: the old face is lifted off as a ghost while the new one is put down; the hand-drawn rim is drawn in, the sticker ticks click on
+  var REDUCE = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function center(n) { n.style.transformBox = 'view-box'; n.style.transformOrigin = '200px 200px'; }
+  Dial.prototype.morph = function (from, to) {
+    if (REDUCE || !Element.prototype.animate) return;
+    var svg = this.S.ownerSVGElement;
+    if (this.ghost) this.ghost.remove();
+    var src = from === 'sticker' ? this.S : this.M;
+    var ghost = src.cloneNode(true); ghost.style.display = ''; ghost.removeAttribute('id');
+    svg.appendChild(ghost); center(ghost); this.ghost = ghost;
+    var self = this;
+    ghost.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'scale(.9) rotate(' + (to === 'marker' ? -8 : 8) + 'deg)' }],
+      { duration: 340, easing: 'cubic-bezier(.4,0,.9,.5)', fill: 'forwards' }).onfinish = function () { ghost.remove(); if (self.ghost === ghost) self.ghost = null; };
+    var layer = to === 'sticker' ? this.S : this.M; center(layer);
+    layer.animate([{ opacity: 0, transform: 'scale(1.08) rotate(' + (to === 'marker' ? 6 : -6) + 'deg)' }, { opacity: 1, transform: 'none' }],
+      { duration: 620, delay: 90, easing: 'cubic-bezier(.2,1.25,.3,1)', fill: 'backwards' });
+    if (to === 'marker') {
+      this.mRims.forEach(function (r, i) {
+        var L = r.getTotalLength();
+        r.style.strokeDasharray = L + ' ' + L;
+        r.animate([{ strokeDashoffset: L }, { strokeDashoffset: 0 }], { duration: 760, delay: 120 + i * 140, easing: 'cubic-bezier(.45,0,.2,1)', fill: 'backwards' })
+          .onfinish = function () { r.style.strokeDasharray = ''; };
+      });
+      this.mNums.forEach(function (n, i) {
+        n.el.animate([{ opacity: 0, transform: 'translateY(6px) rotate(-8deg)' }, { opacity: 1, transform: 'none' }],
+          { duration: 300, delay: 420 + i * 90, easing: 'cubic-bezier(.2,1.4,.4,1)', fill: 'backwards' });
+      });
+    } else {
+      this.sTicks.forEach(function (t, i) {
+        t.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, delay: 260 + i * 28, easing: 'linear', fill: 'backwards' });
+      });
+    }
+  };
+
   Dial.prototype.makeLabel = function (parent) {
     var g = el('g', {}, parent);
     var t = el('text', { x: 294, y: 200, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-family': 'Archivo, sans-serif', 'font-weight': 900, 'font-size': 23, 'letter-spacing': 0.3 }, g);
@@ -325,10 +364,12 @@
 
   Dial.prototype.update = function (t, show, style) {
     if (style !== this.style) {
+      var prev = this.style;
       this.style = style;
       this.S.style.display = style === 'sticker' ? '' : 'none';
       this.M.style.display = style === 'marker' ? '' : 'none';
       this.objKey = null;
+      if (prev) { this.morph(prev, style); if (show.p >= 1) show.objT = 0; }
     }
     var task = show.task;
     this.buildObjects(task, style);
@@ -535,6 +576,12 @@
   var readout = document.getElementById('readout'), lockTime = { textContent: '' }, nextCard = null;
 
   window.__timeto = { state: state, play: setPlaying };
+  document.querySelectorAll('.seg').forEach(function (seg) {
+    var th = document.createElement('span'); th.className = 'thumb'; seg.insertBefore(th, seg.firstChild);
+    function place() { var b = seg.querySelector('[aria-pressed="true"]'); if (!b) return; th.style.width = b.offsetWidth + 'px'; th.style.transform = 'translateX(' + b.offsetLeft + 'px)'; }
+    place(); new MutationObserver(place).observe(seg, { attributes: true, subtree: true, attributeFilter: ['aria-pressed'] });
+    addEventListener('resize', place); if (document.fonts) document.fonts.ready.then(place);
+  });
   if (q.get('embed') === '1') document.body.classList.add('embed');
   if (q.get('card') === '1') document.body.classList.add('card');
   addEventListener('message', function (e) {
